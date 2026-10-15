@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,7 +42,7 @@
 
     <!-- ====== NAVIGATION ====== -->
     <header class="navbar">
-        <a href="#home" class="logo" aria-label="home">
+        <a href="#home" class="logo" aria-label="Home">
             <span class="logo-symbol">M</span>
             <span>MEAKZ<span class="logo-dot">.</span></span>
         </a>
@@ -79,11 +79,38 @@
                         BUILDING PROJECTS
                     </p>
 
-                    <h1>
-                        CODE.<br>
-                        CREATE.<br>
-                        <span class="gradient-text">EVOLVE.</span>
-                    </h1>
+                    <!-- ====== CCE ANIMATION ====== -->
+                    <div
+                        class="brand-animation"
+                        id="brand-animation"
+                        data-phase="compact"
+                        aria-label="Code. Create. Evolve."
+                    >
+                        <!-- Compact CCE state -->
+                        <h1 class="brand-compact" aria-hidden="true">
+                            <span class="brand-letter">C</span><span class="brand-letter">C</span><span class="brand-letter brand-letter-accent">E</span>
+                        </h1>
+
+                        <!-- Expanded writing state -->
+                        <div class="brand-expanded" aria-hidden="true">
+                            <div class="brand-line" data-word="CODE.">
+                                <span class="brand-line-text"></span>
+                            </div>
+
+                            <div class="brand-line" data-word="CREATE.">
+                                <span class="brand-line-text"></span>
+                            </div>
+
+                            <div class="brand-line" data-word="EVOLVE.">
+                                <span class="brand-line-text gradient-text"></span>
+                            </div>
+                        </div>
+
+                        <!-- Screen-reader text stays available in both states -->
+                        <span class="sr-only">
+                            CODE. CREATE. EVOLVE.
+                        </span>
+                    </div>
 
                     <p class="hero-description">
                         I'm learning to build useful tools,
@@ -110,18 +137,11 @@
                     </div>
                 </div>
 
-                <!-- YOUR LOCAL PHOTO -->
+                <!-- ====== PORTRAIT ====== -->
                 <div class="hero-visual">
                     <div class="portrait-wrap">
                         <div class="portrait-glow"></div>
 
-                        <!--
-                            Add your photo to:
-                            assets/me.png
-
-                            If the file is missing, the MEAKZ
-                            placeholder will remain visible.
-                        -->
                         <img
                             src="assets/me.png"
                             alt="MEAKZ"
@@ -176,7 +196,7 @@
                 <article class="about-card panel reveal">
                     <span class="card-label">INTRODUCTION</span>
 
-                    <h3>Learning > Building > Improving.</h3>
+                    <h3>Learning &gt; Building &gt; Improving.</h3>
 
                     <p>
                         I'm a developer learning to build useful tools,
@@ -184,9 +204,7 @@
                         that go beyond basic tutorials using C# and Python.
                     </p>
 
-                    <p>
-                        Every project is another step forward.
-                    </p>
+                    <p>Every project is another step forward.</p>
                 </article>
 
                 <article class="about-card panel reveal">
@@ -225,7 +243,10 @@
             <div class="section-heading">
                 <span class="section-number">02 / PROJECTS</span>
                 <h2>BUILT FOR MY <span>PURPOSE.</span></h2>
-                <p>Building tools for my own needs, with a growing ambition to create solutions for others.</p>
+                <p>
+                    Building tools for my own needs, with a growing
+                    ambition to create solutions for others.
+                </p>
             </div>
 
             <div class="project-grid">
@@ -240,7 +261,7 @@
 
                     <p>
                         A Python tracker for fishing catches,
-                        earnings, XP and location performance and stats.
+                        earnings, XP, location performance and stats.
                     </p>
 
                     <div class="project-tags">
@@ -264,7 +285,7 @@
 
                     <p>
                         A terminal-based traffic light system
-                        with state changes, timing and clean output for fun ngl.
+                        with state changes, timing and clean output.
                     </p>
 
                     <div class="project-tags">
@@ -304,9 +325,7 @@
 
             </div>
 
-            <p class="projects-note">
-                More projects Soon To Come
-            </p>
+            <p class="projects-note">More Projects Soon To Come</p>
 
         </section>
 
@@ -374,7 +393,7 @@
 
             <p>
                 Interested in what I'm building?
-                Check back as i develop more!
+                Check back as I develop more!
             </p>
 
             <a href="#projects" class="button button-primary">
@@ -392,9 +411,10 @@
             <span>MEAKZ<span class="logo-dot">.</span></span>
         </a>
 
-        <span>DESIGNED & BUILT BY MEAKZ</span>
+        <span>DESIGNED &amp; BUILT BY MEAKZ</span>
         <span>© 2026 MEAKZ</span>
     </footer>
 
 </body>
 </html>
+```
