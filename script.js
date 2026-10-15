@@ -1,39 +1,710 @@
 
-/* ====== SMOOTH, RESPONSIVE CURSOR ====== */
+/* =====================================================
+   MEAKZ // DEVELOPER PORTFOLIO
+   JAVASCRIPT SYSTEM 2.0
+   No external libraries or services.
+   ===================================================== */
+
+"use strict";
+
+/* ====== CONFIGURATION ====== */
+
+const CONFIG = {
+    bootDuration: 1300,
+    particleCount: 35,
+    cursorEnabled: true,
+    gridEnabled: true,
+    cardTiltEnabled: true
+};
+
+/* ====== ELEMENTS ====== */
+
+const root = document.documentElement;
 
 const cursorDot = document.querySelector(".cursor-dot");
 const cursorRing = document.querySelector(".cursor-ring");
+const backgroundGrid = document.querySelector(".background-grid");
 
-let mouseX = -100;
-let mouseY = -100;
+const bootScreen = document.getElementById("boot-screen");
+const bootProgress = document.getElementById("boot-progress");
+const bootStatus = document.getElementById("boot-status");
 
-function moveCursor(event) {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
+const particleCanvas = document.getElementById("particle-canvas");
+const portraitImage = document.getElementById("portrait-image");
+const portraitPlaceholder = document.getElementById("portrait-placeholder");
 
-    // Reveal the grid around the mouse
-    document.documentElement.style.setProperty(
-        "--mouse-x",
-        `${mouseX}px`
-    );
+const terminalForm = document.getElementById("terminal-form");
+const terminalInput = document.getElementById("terminal-input");
+const terminalOutput = document.getElementById("terminal-output");
 
-    document.documentElement.style.setProperty(
-        "--mouse-y",
-        `${mouseY}px`
-    );
+/* ====== STATE ====== */
 
-    // Move the custom cursor immediately — no animation lag
-    if (cursorDot) {
-        cursorDot.style.transform =
-            `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+const state = {
+    mouseX: -1000,
+    mouseY: -1000,
+    hasMouse: false,
+    cursorVisible: false,
+    history: [],
+    historyIndex: 0,
+    particleAnimation: null
+};
+
+/* ====== BOOT SEQUENCE ====== */
+
+function startBootSequence() {
+    if (!bootScreen) return;
+
+    const messages = [
+        "Loading portfolio...",
+        "Initialising interface...",
+        "Starting MEAKZ systems...",
+        "System ready."
+    ];
+
+    const startTime = performance.now();
+
+    function updateBoot(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / CONFIG.bootDuration, 1);
+
+        if (bootProgress) {
+            bootProgress.style.width = `${progress * 100}%`;
+        }
+
+        if (bootStatus) {
+            const messageIndex = Math.min(
+                Math.floor(progress * messages.length),
+                messages.length - 1
+            );
+
+            bootStatus.textContent = messages[messageIndex];
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(updateBoot);
+        } else {
+            window.setTimeout(() => {
+                bootScreen.classList.add("boot-hidden");
+            }, 150);
+        }
     }
 
-    if (cursorRing) {
-        cursorRing.style.transform =
-            `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+    requestAnimationFrame(updateBoot);
+}
+
+/* ====== MOUSE TRACKING ====== */
+
+function updateMousePosition(event) {
+    state.mouseX = event.clientX;
+    state.mouseY = event.clientY;
+    state.hasMouse = true;
+    state.cursorVisible = true;
+
+    /*
+     * The grid mask uses viewport coordinates.
+     * This makes the purple squares follow the mouse
+     * even when the page is scrolled.
+     */
+    if (CONFIG.gridEnabled) {
+        root.style.setProperty("--mouse-x", `${state.mouseX}px`);
+        root.style.setProperty("--mouse-y", `${state.mouseY}px`);
+    }
+
+    /*
+     * The native Windows cursor remains visible.
+     * These small elements add a subtle purple accent.
+     */
+    if (CONFIG.cursorEnabled) {
+        const transform =
+            `translate3d(${state.mouseX}px, ${state.mouseY}px, 0) ` +
+            "translate(-50%, -50%)";
+
+        if (cursorDot) {
+            cursorDot.style.transform = transform;
+            cursorDot.style.opacity = "0.9";
+        }
+
+        if (cursorRing) {
+            cursorRing.style.transform = transform;
+            cursorRing.style.opacity = "0.55";
+        }
     }
 }
 
-window.addEventListener("pointermove", moveCursor, {
+window.addEventListener("pointermove", updateMousePosition, {
     passive: true
 });
+
+/* Hide the custom accent when the mouse leaves the page. */
+document.addEventListener("pointerleave", (event) => {
+    if (event.relatedTarget !== null) return;
+
+    state.cursorVisible = false;
+
+    if (cursorDot) cursorDot.style.opacity = "0";
+    if (cursorRing) cursorRing.style.opacity = "0";
+
+    root.style.setProperty("--mouse-x", "-1000px");
+    root.style.setProperty("--mouse-y", "-1000px");
+});
+
+/* ====== PORTRAIT IMAGE ====== */
+
+function initialisePortrait() {
+    if (!portraitImage) return;
+
+    function showPortrait() {
+        portraitImage.classList.add("photo-loaded");
+
+        if (portraitPlaceholder) {
+            portraitPlaceholder.style.display = "none";
+        }
+    }
+
+    function showPlaceholder() {
+        portraitImage.classList.remove("photo-loaded");
+
+        if (portraitPlaceholder) {
+            portraitPlaceholder.style.display = "flex";
+        }
+    }
+
+    portraitImage.addEventListener("load", showPortrait);
+    portraitImage.addEventListener("error", showPlaceholder);
+
+    /*
+     * Handle cached images that loaded before
+     * the event listeners were attached.
+     */
+    if (portraitImage.complete) {
+        if (
+            portraitImage.naturalWidth > 0 &&
+            portraitImage.naturalHeight > 0
+        ) {
+            showPortrait();
+        } else {
+            showPlaceholder();
+        }
+    }
+}
+
+/* ====== PARTICLE BACKGROUND ====== */
+
+function initialiseParticles() {
+    if (!particleCanvas) return;
+
+    const context = particleCanvas.getContext("2d");
+
+    if (!context) return;
+
+    const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    const touchDevice = window.matchMedia(
+        "(hover: none), (pointer: coarse)"
+    ).matches;
+
+    if (reducedMotion) return;
+
+    const canvas = particleCanvas;
+    const particles = [];
+
+    let width = 0;
+    let height = 0;
+    let animationFrame = 0;
+    let lastFrameTime = 0;
+
+    const particleLimit = touchDevice
+        ? 12
+        : CONFIG.particleCount;
+
+    const frameInterval = 1000 / 30;
+
+    function resizeCanvas() {
+        const pixelRatio = Math.min(
+            window.devicePixelRatio || 1,
+            1.5
+        );
+
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        canvas.width = Math.round(width * pixelRatio);
+        canvas.height = Math.round(height * pixelRatio);
+
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+
+        context.setTransform(
+            pixelRatio,
+            0,
+            0,
+            pixelRatio,
+            0,
+            0
+        );
+    }
+
+    function createParticle(randomY = false) {
+        return {
+            x: Math.random() * width,
+            y: randomY
+                ? Math.random() * height
+                : height + Math.random() * 40,
+
+            radius: Math.random() * 1.5 + 0.5,
+            speed: Math.random() * 0.22 + 0.08,
+            drift: (Math.random() - 0.5) * 0.18,
+            opacity: Math.random() * 0.3 + 0.1
+        };
+    }
+
+    function resetParticles() {
+        particles.length = 0;
+
+        for (let i = 0; i < particleLimit; i++) {
+            particles.push(createParticle(true));
+        }
+    }
+
+    function renderParticles(now) {
+        animationFrame = 0;
+
+        if (document.hidden) return;
+
+        if (now - lastFrameTime < frameInterval) {
+            scheduleFrame();
+            return;
+        }
+
+        lastFrameTime = now;
+
+        context.clearRect(0, 0, width, height);
+
+        for (const particle of particles) {
+            particle.y -= particle.speed;
+            particle.x += particle.drift;
+
+            if (particle.y < -5) {
+                Object.assign(particle, createParticle());
+            }
+
+            if (particle.x < -5) particle.x = width + 5;
+            if (particle.x > width + 5) particle.x = -5;
+
+            /*
+             * Slightly brighten particles near the mouse
+             * without adding expensive effects.
+             */
+            let opacity = particle.opacity;
+
+            if (state.hasMouse) {
+                const dx = particle.x - state.mouseX;
+                const dy = particle.y - state.mouseY;
+                const distanceSquared = dx * dx + dy * dy;
+
+                if (distanceSquared < 110 * 110) {
+                    opacity = Math.min(opacity + 0.2, 0.65);
+                }
+            }
+
+            context.beginPath();
+            context.arc(
+                particle.x,
+                particle.y,
+                particle.radius,
+                0,
+                Math.PI * 2
+            );
+
+            context.fillStyle = `rgba(184, 151, 255, ${opacity})`;
+            context.fill();
+        }
+
+        scheduleFrame();
+    }
+
+    function scheduleFrame() {
+        if (animationFrame || document.hidden) return;
+
+        animationFrame = requestAnimationFrame(renderParticles);
+    }
+
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = 0;
+            }
+
+            context.clearRect(0, 0, width, height);
+        } else {
+            lastFrameTime = 0;
+            scheduleFrame();
+        }
+    }
+
+    resizeCanvas();
+    resetParticles();
+    scheduleFrame();
+
+    window.addEventListener("resize", () => {
+        resizeCanvas();
+        resetParticles();
+    }, { passive: true });
+
+    document.addEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+    );
+}
+
+/* ====== SCROLL REVEALS ====== */
+
+function initialiseScrollReveals() {
+    const revealElements = document.querySelectorAll(".reveal");
+
+    if (!("IntersectionObserver" in window)) {
+        revealElements.forEach((element) => {
+            element.classList.add("is-visible");
+        });
+
+        return;
+    }
+
+    const observer = new IntersectionObserver(
+        (entries, currentObserver) => {
+            for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+
+                entry.target.classList.add("is-visible");
+                currentObserver.unobserve(entry.target);
+            }
+        },
+        {
+            threshold: 0.12,
+            rootMargin: "0px 0px -35px 0px"
+        }
+    );
+
+    revealElements.forEach((element) => {
+        observer.observe(element);
+    });
+}
+
+/* ====== PROJECT CARD TILT ====== */
+
+function initialiseProjectTilt() {
+    if (!CONFIG.cardTiltEnabled) return;
+
+    const supportsHover = window.matchMedia(
+        "(hover: hover) and (pointer: fine)"
+    ).matches;
+
+    const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (!supportsHover || reducedMotion) return;
+
+    const cards = document.querySelectorAll(".project-card");
+
+    cards.forEach((card) => {
+        let rect = null;
+
+        card.addEventListener("pointerenter", () => {
+            rect = card.getBoundingClientRect();
+        }, { passive: true });
+
+        card.addEventListener("pointermove", (event) => {
+            if (!rect) {
+                rect = card.getBoundingClientRect();
+            }
+
+            const relativeX = (event.clientX - rect.left) / rect.width;
+            const relativeY = (event.clientY - rect.top) / rect.height;
+
+            const rotateY = (relativeX - 0.5) * 4;
+            const rotateX = (0.5 - relativeY) * 4;
+
+            card.style.transform =
+                `perspective(900px) rotateX(${rotateX}deg) ` +
+                `rotateY(${rotateY}deg)`;
+        }, { passive: true });
+
+        card.addEventListener("pointerleave", () => {
+            rect = null;
+            card.style.transform = "";
+        });
+    });
+}
+
+/* ====== TERMINAL HELPERS ====== */
+
+function addTerminalLine(text, className = "") {
+    if (!terminalOutput) return;
+
+    const line = document.createElement("p");
+
+    if (className) {
+        line.className = className;
+    }
+
+    /*
+     * textContent prevents entered commands from
+     * being interpreted as HTML.
+     */
+    line.textContent = text;
+    terminalOutput.appendChild(line);
+
+    /*
+     * Keep the terminal readable and stop it growing
+     * indefinitely after lots of commands.
+     */
+    while (terminalOutput.children.length > 80) {
+        terminalOutput.removeChild(terminalOutput.firstElementChild);
+    }
+
+    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+}
+
+function clearTerminal() {
+    if (terminalOutput) {
+        terminalOutput.replaceChildren();
+    }
+}
+
+function getLocalTime() {
+    return new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
+}
+
+/* ====== TERMINAL COMMANDS ====== */
+
+const terminalCommands = {
+    help() {
+        addTerminalLine("AVAILABLE COMMANDS", "terminal-success");
+        addTerminalLine("help       - Show this command list");
+        addTerminalLine("about      - About MEAKZ");
+        addTerminalLine("projects   - List current projects");
+        addTerminalLine("skills     - Show current toolkit");
+        addTerminalLine("status     - Check portfolio status");
+        addTerminalLine("time       - Display local time");
+        addTerminalLine("whoami     - Identify this session");
+        addTerminalLine("github     - GitHub link status");
+        addTerminalLine("secret     - Discover a hidden message");
+        addTerminalLine("clear      - Clear terminal output");
+    },
+
+    about() {
+        addTerminalLine(
+            "MEAKZ: independent developer learning by building.",
+            "terminal-success"
+        );
+        addTerminalLine("Current focus: Python, C# and web development.");
+    },
+
+    projects() {
+        addTerminalLine("PROJECT DIRECTORY", "terminal-success");
+        addTerminalLine("01  Fishing Intelligence — Python / JSON");
+        addTerminalLine("02  Traffic Systems — Python / CLI");
+        addTerminalLine("03  System Utilities — command-line tools");
+        addTerminalLine("Project links have not been configured yet.");
+    },
+
+    skills() {
+        addTerminalLine("CURRENT TOOLKIT", "terminal-success");
+        addTerminalLine("Python          LEARNING");
+        addTerminalLine("C#              LEARNING");
+        addTerminalLine("HTML / CSS      BUILDING");
+        addTerminalLine("JavaScript      BUILDING");
+    },
+
+    status() {
+        addTerminalLine("PORTFOLIO STATUS: ONLINE", "terminal-success");
+        addTerminalLine("Terminal: operational");
+        addTerminalLine("External services: not required");
+        addTerminalLine("Dependencies: none");
+    },
+
+    time() {
+        addTerminalLine(`LOCAL TIME: ${getLocalTime()}`, "terminal-success");
+    },
+
+    whoami() {
+        addTerminalLine("VISITOR SESSION", "terminal-success");
+        addTerminalLine("You are exploring the MEAKZ portfolio.");
+        addTerminalLine("Session is local to this page.");
+    },
+
+    github() {
+        addTerminalLine(
+            "GitHub profile link has not been configured.",
+            "terminal-error"
+        );
+        addTerminalLine(
+            "Add your real profile URL when you're ready."
+        );
+    },
+
+    secret() {
+        addTerminalLine(
+            "SECRET MESSAGE UNLOCKED",
+            "terminal-success"
+        );
+        addTerminalLine("No shortcuts. No fake progress.");
+        addTerminalLine("Build things. Break things. Learn.");
+    },
+
+    clear() {
+        clearTerminal();
+    }
+};
+
+function runTerminalCommand(rawCommand) {
+    const command = rawCommand.trim().toLowerCase();
+
+    if (!command) return;
+
+    addTerminalLine(`visitor@meakz:~$ ${rawCommand}`, "terminal-command");
+
+    if (Object.prototype.hasOwnProperty.call(terminalCommands, command)) {
+        terminalCommands[command]();
+    } else {
+        addTerminalLine(
+            `Command not found: ${command}. Type "help".`,
+            "terminal-error"
+        );
+    }
+}
+
+/* ====== TERMINAL FORM + HISTORY ====== */
+
+function initialiseTerminal() {
+    if (!terminalForm || !terminalInput || !terminalOutput) return;
+
+    terminalForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const command = terminalInput.value;
+
+        if (!command.trim()) return;
+
+        state.history.push(command);
+        state.historyIndex = state.history.length;
+
+        runTerminalCommand(command);
+
+        terminalInput.value = "";
+    });
+
+    terminalInput.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+
+            if (state.history.length === 0) return;
+
+            state.historyIndex = Math.max(0, state.historyIndex - 1);
+
+            terminalInput.value =
+                state.history[state.historyIndex] || "";
+        }
+
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+
+            state.historyIndex = Math.min(
+                state.history.length,
+                state.historyIndex + 1
+            );
+
+            terminalInput.value =
+                state.history[state.historyIndex] || "";
+        }
+    });
+}
+
+/* ====== LIVE STATUS CLOCK ====== */
+
+function initialiseStatusClock() {
+    const status = document.querySelector(".nav-status");
+
+    if (!status) return;
+
+    const clock = document.createElement("span");
+
+    clock.className = "nav-clock";
+    clock.style.marginLeft = "10px";
+    clock.style.color = "#777087";
+    clock.style.fontVariantNumeric = "tabular-nums";
+
+    status.appendChild(clock);
+
+    function updateClock() {
+        clock.textContent = getLocalTime();
+    }
+
+    updateClock();
+    window.setInterval(updateClock, 1000);
+}
+
+/* ====== NAVIGATION ====== */
+
+function initialiseNavigation() {
+    const links = document.querySelectorAll('.nav-links a[href^="#"]');
+
+    links.forEach((link) => {
+        link.addEventListener("click", () => {
+            const targetId = link.getAttribute("href");
+            const target = document.querySelector(targetId);
+
+            if (target) {
+                target.setAttribute("tabindex", "-1");
+            }
+        });
+    });
+}
+
+/* ====== CONSOLE SIGNATURE ====== */
+
+function showConsoleSignature() {
+    console.log(
+        "%c MEAKZ ",
+        "background:#a47aff;color:#08080d;font-size:18px;font-weight:bold;padding:6px 12px;"
+    );
+
+    console.log(
+        "%c Developer portfolio // systems online ",
+        "color:#bda0ff;font-family:monospace;"
+    );
+
+    console.log(
+        "Built locally. No external libraries. Keep building."
+    );
+}
+
+/* ====== START EVERYTHING ====== */
+
+function initialisePortfolio() {
+    startBootSequence();
+    initialisePortrait();
+    initialiseParticles();
+    initialiseScrollReveals();
+    initialiseProjectTilt();
+    initialiseTerminal();
+    initialiseStatusClock();
+    initialiseNavigation();
+    showConsoleSignature();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialisePortfolio, {
+        once: true
+    });
+} else {
+    initialisePortfolio();
+}
