@@ -10,8 +10,8 @@
 /* ====== CONFIGURATION ====== */
 
 const CONFIG = {
-    bootDuration: 1300,
-    particleCount: 35,
+    bootDuration: 800,
+    particleCount: 55,
     cursorEnabled: true,
     gridEnabled: true,
     cardTiltEnabled: true
