@@ -7,8 +7,8 @@
 /* ====== VARIABLES ====== */
 
 :root {
-    --bg: #020103;
-    --bg-soft: #12111c;
+    --bg: #000000;
+    --bg-soft: #000000;
     --panel: rgba(17, 15, 27, 0.78);
     --panel-hover: rgba(25, 20, 40, 0.94);
 
